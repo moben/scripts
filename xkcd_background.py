@@ -27,7 +27,8 @@ font = "HVD-Comic-Serif-Pro-Regular"
 # Probably shouldn't change
 url  = "http://dynamic.xkcd.com/random/comic/"
 
-convertargs = [ '-background', '#ffffff80', '-fill', 'black', '-gravity', 'center', '-font', font, '-size' ]
+color = "#ffffff80"
+convertargs = [ '-background', color, '-fill', 'black', '-gravity', 'center', '-font', font, '-size' ]
 
 
 import sys, os, textwrap, subprocess, tempfile
@@ -92,10 +93,10 @@ while True:
 	imagefile.write(image.read())
 	imagefile.flush()
 
-	subprocess.check_call(['convert'] + convertargs + [str(screenwidth).strip('\n ') + 'x', '-pointsize', '48', 'caption:' + title, titlefile.name])
-	subprocess.check_call(['convert'] + convertargs + [str(screenwidth).strip('\n ') + 'x', '-pointsize', '24', 'caption:' + caption, captionfile.name])
+	subprocess.check_call(['convert'] + convertargs + [str(screenwidth).strip('\n ') + 'x', '-pointsize', '48', 'caption:' + title, '-gravity', 'north', '-splice', '0x10', titlefile.name])
+	subprocess.check_call(['convert'] + convertargs + [str(screenwidth).strip('\n ') + 'x', '-pointsize', '24', 'caption:' + caption, '-gravity', 'south', '-splice', '0x10', captionfile.name])
 
-	subprocess.check_call(['convert', '-background', '#ffffff80', '-alpha', 'on', '-gravity', 'north', '-splice', '0x28', '-gravity', 'center', '-append', titlefile.name, imagefile.name, captionfile.name, resultfile.name])
+	subprocess.check_call(['convert', '-background', color, '-alpha', 'on', '-gravity', 'center', '-append', titlefile.name, imagefile.name, captionfile.name, resultfile.name])
 
 	# Clean up now, rather than later
 	titlefile.close()
