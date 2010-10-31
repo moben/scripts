@@ -1,6 +1,6 @@
 #!/bin/env python
 
-# Set your screen's width and height here, until I find a way to 
+# Set your screen's width and height in pixels here, until I find a way to 
 # get them automatically or turn this into a cli parameter.
 # This doesn't scale the result, as that tends to turn out bad
 # Instead it just discards all pictures that don't fit onto the target.
