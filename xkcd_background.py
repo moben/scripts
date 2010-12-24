@@ -4,8 +4,8 @@
 # get them automatically or turn this into a cli parameter.
 # This doesn't scale the result, as that tends to turn out bad
 # Instead it just discards all pictures that don't fit onto the target.
-screenwidth  = 1600
-screenheight = 900
+screenwidth  = 1600 - 100
+screenheight = 900 - 50
 
 # Update frequency in minutes
 # Don't set this to high, that wouldn't be nice
