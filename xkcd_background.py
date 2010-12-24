@@ -101,8 +101,11 @@ for tag in index2.getroot().iter('{http://www.w3.org/1999/xhtml}img'):
 #		img = index2.find(htmlns + 'img[@title]')
 		break
 else:
-	print "bad"
-	continue
+	print """
+Couldn't find a comic, please report this.
+Additional information:
+Random url:""", index.geturl()
+	exit(100)
 
 imgsrc = img.attrib.get('src')
 #caption = textwrap.fill(img.attrib.get('title'))
