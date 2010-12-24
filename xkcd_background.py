@@ -13,10 +13,10 @@ freq = 30
 
 # Directory to save to
 # "~" is automagically expanded
-dir  = "~/Bilder/xkcd-background/"
+dir  = "~/Bilder/"
 
 # Filename to save to (extension needed!)
-file = "xkcd.png"
+file = "xkcd-background.png"
 
 # Font to use (needs to be in a format that ImageMagick can understand)
 # Get the default for free (as in beer) from
