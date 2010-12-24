@@ -27,9 +27,16 @@ font = "HVD-Comic-Serif-Pro-Regular"
 # Probably shouldn't change
 url  = "http://dynamic.xkcd.com/random/comic/"
 
+# Where the images live
+comicurl = "http://imgs.xkcd.com/comics/"
+
 color = "#ffffff80"
 convertargs = [ '-background', color, '-fill', 'black', '-gravity', 'center', '-font', font, '-size' ]
 
+
+# Don't change!
+XHTML_NAMESPACE = "http://www.w3.org/1999/xhtml"
+htmlns = r'{http://www.w3.org/1999/xhtml}'
 
 import sys, os, textwrap, subprocess, tempfile
 import urllib2
@@ -83,7 +90,19 @@ while True:
 	index2 = etree.parse(index, myparser)
 
 	title = index2.find('//{http://www.w3.org/1999/xhtml}h1').text
-	img = index2.find('//{http://www.w3.org/1999/xhtml}img[@title]')
+	print title
+	print htmlns + 'h1'
+	for tag in index2.getroot().iter('{http://www.w3.org/1999/xhtml}img'):
+		print tag
+		if tag.attrib.get('src').startswith(comicurl):
+			print "found comic"
+			img = tag
+#			img = index2.find(htmlns + 'img[@title]')
+			break
+	else:
+		print "bad"
+		continue
+
 	imgsrc = img.attrib.get('src')
 #	caption = textwrap.fill(img.attrib.get('title'))
 	caption = img.attrib.get('title')
