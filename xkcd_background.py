@@ -76,63 +76,60 @@ except OSError:
 
 os.chdir(dir)
 
-while True:
-	titlefile = tempfile.NamedTemporaryFile(suffix='.png')
-	captionfile = tempfile.NamedTemporaryFile(suffix='.png')
-	imagefile = tempfile.NamedTemporaryFile()
-	resultfile = tempfile.NamedTemporaryFile(suffix='.png')
+# Here the magic starts
 
-	resultheight = 0
+titlefile = tempfile.NamedTemporaryFile(suffix='.png')
+captionfile = tempfile.NamedTemporaryFile(suffix='.png')
+imagefile = tempfile.NamedTemporaryFile()
+resultfile = tempfile.NamedTemporaryFile(suffix='.png')
 
-	index = urlopen2(url)
+resultheight = 0
 
-	myparser = etree.XMLParser(recover=True)
-	index2 = etree.parse(index, myparser)
+index = urlopen2(url)
 
-	title = index2.find('//{http://www.w3.org/1999/xhtml}h1').text
-	print title
-	print htmlns + 'h1'
-	for tag in index2.getroot().iter('{http://www.w3.org/1999/xhtml}img'):
-		print tag
-		if tag.attrib.get('src').startswith(comicurl):
-			print "found comic"
-			img = tag
-#			img = index2.find(htmlns + 'img[@title]')
-			break
-	else:
-		print "bad"
-		continue
+myparser = etree.XMLParser(recover=True)
+index2 = etree.parse(index, myparser)
 
-	imgsrc = img.attrib.get('src')
-#	caption = textwrap.fill(img.attrib.get('title'))
-	caption = img.attrib.get('title')
+title = index2.find('//{http://www.w3.org/1999/xhtml}h1').text
+print title
+print htmlns + 'h1'
+for tag in index2.getroot().iter('{http://www.w3.org/1999/xhtml}img'):
+	print tag
+	if tag.attrib.get('src').startswith(comicurl):
+		print "found comic"
+		img = tag
+#		img = index2.find(htmlns + 'img[@title]')
+		break
+else:
+	print "bad"
+	continue
 
-	image = urlopen2(imgsrc)
+imgsrc = img.attrib.get('src')
+#caption = textwrap.fill(img.attrib.get('title'))
+caption = img.attrib.get('title')
 
-	imagefile.write(image.read())
-	imagefile.flush()
+image = urlopen2(imgsrc)
 
-	subprocess.check_call(['convert'] + convertargs + [str(screenwidth).strip('\n ') + 'x', '-pointsize', '48', 'caption:' + title, '-gravity', 'north', '-splice', '0x10', titlefile.name])
-	subprocess.check_call(['convert'] + convertargs + [str(screenwidth).strip('\n ') + 'x', '-pointsize', '24', 'caption:' + caption, '-gravity', 'south', '-splice', '0x10', captionfile.name])
+imagefile.write(image.read())
+imagefile.flush()
 
-	subprocess.check_call(['convert', '-background', color, '-alpha', 'on', '-gravity', 'center', '-append', titlefile.name, imagefile.name, captionfile.name, resultfile.name])
+subprocess.check_call(['convert'] + convertargs + [str(screenwidth).strip('\n ') + 'x', '-pointsize', '48', 'caption:' + title, '-gravity', 'north', '-splice', '0x10', titlefile.name])
+subprocess.check_call(['convert'] + convertargs + [str(screenwidth).strip('\n ') + 'x', '-pointsize', '24', 'caption:' + caption, '-gravity', 'south', '-splice', '0x10', captionfile.name])
 
-	# Clean up now, rather than later
-	titlefile.close()
-	captionfile.close()
-	imagefile.close()
-	
-	resultheight = int(subprocess.check_output(['identify', '-format', '%h', resultfile.name]))
+subprocess.check_call(['convert', '-background', color, '-alpha', 'on', '-gravity', 'center', '-append', titlefile.name, imagefile.name, captionfile.name, resultfile.name])
 
-	if resultheight <= screenheight:
-		targetfile = open(dir + file, 'w+')
 
-		targetfile.write(resultfile.read())
-		targetfile.flush()
-		targetfile.close()
+resultheight = int(subprocess.check_output(['identify', '-format', '%h', resultfile.name]))
 
-		resultfile.close()
+if resultheight <= screenheight:
+	targetfile = open(dir + file, 'w+')
 
-		sleep(60 * freq)
-	else:
-		resultfile.close()
+	targetfile.write(resultfile.read())
+	targetfile.flush()
+	targetfile.close()
+
+# Explicit is better than implicit
+titlefile.close()
+captionfile.close()
+imagefile.close()
+resultfile.close()
