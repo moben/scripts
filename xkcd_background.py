@@ -70,9 +70,10 @@ def urlopen2(url):
 dir = os.path.expanduser(dir)
 
 try:
+	print "Creating", dir
 	os.makedirs(dir)
 except OSError:
-	pass
+	print dir, "existed already"
 
 os.chdir(dir)
 
