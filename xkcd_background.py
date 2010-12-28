@@ -58,9 +58,15 @@ def urlopen2(url):
 		x = urllib2.urlopen(url)
 	except urllib2.URLError, reason:
 		print "Got an error trying to open the url:", reason
+		exit(1)
 	except urllib2.HTTPError, code:
 		print "Got HTTP code", code
-	return x
+		exit(2)
+	else:
+		return x
+	print """Something went very wrong trying to open""", url, """
+please report this"""
+	exit(200)
 
 dir = os.path.expanduser(dir)
 
