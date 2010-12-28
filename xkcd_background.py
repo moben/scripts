@@ -54,17 +54,12 @@ except OSError:
 
 
 def urlopen2(url):
-	while True:
-		try:
-			x = urllib2.urlopen(url)
-		except urllib2.URLError, reason:
-			print "Got an error trying to open the url:", reason
-			pass
-		except urllib2.HTTPError, code:
-			print "Got HTTP code", code
-			pass
-		else:
-			break
+	try:
+		x = urllib2.urlopen(url)
+	except urllib2.URLError, reason:
+		print "Got an error trying to open the url:", reason
+	except urllib2.HTTPError, code:
+		print "Got HTTP code", code
 	return x
 
 dir = os.path.expanduser(dir)
