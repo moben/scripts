@@ -1,10 +1,10 @@
-#!/bin/env python
+#!/usr/bin/python2
 
 # Set your screen's width and height in pixels here, until I find a way to 
 # get them automatically or turn this into a cli parameter.
 # This doesn't scale the result, as that tends to turn out bad
 # Instead it just discards all pictures that don't fit onto the target.
-screenwidth  = 1600 - 100
+screenwidth  = 1600
 screenheight = 900 - 50
 
 # Update frequency in minutes
@@ -41,14 +41,16 @@ htmlns = r'{http://www.w3.org/1999/xhtml}'
 import sys, os, textwrap, subprocess, tempfile
 import urllib2
 from time import sleep
+
+NULL = open("/dev/null")
 try:
 	from lxml import etree
 except ImportError:
 	exit("This script needs the libxml2 python bindings (e.g. libxml2-python on Fedora)")
 
 try:
-	subprocess.check_call(['convert', '-version'])
-	subprocess.check_call(['identify', '-version'])
+	subprocess.check_call(['convert', '-version'], stdout=NULL, stderr=NULL)
+	subprocess.check_call(['identify', '-version'], stdout=NULL, stderr=NULL)
 except OSError:
 	exit("This script needs the convert and identify tools from the ImageMagick project")
 
@@ -71,10 +73,9 @@ please report this"""
 dir = os.path.expanduser(dir)
 
 try:
-	print "Creating", dir
 	os.makedirs(dir)
 except OSError:
-	print dir, "existed already"
+    pass
 
 os.chdir(dir)
 
@@ -93,12 +94,9 @@ myparser = etree.XMLParser(recover=True)
 index2 = etree.parse(index, myparser)
 
 title = index2.find('//{http://www.w3.org/1999/xhtml}h1').text
-print title
-print htmlns + 'h1'
+#print "Comic: " + title
 for tag in index2.getroot().iter('{http://www.w3.org/1999/xhtml}img'):
-	print tag
 	if tag.attrib.get('src').startswith(comicurl):
-		print "found comic"
 		img = tag
 #		img = index2.find(htmlns + 'img[@title]')
 		break
@@ -118,7 +116,7 @@ image = urlopen2(imgsrc)
 imagefile.write(image.read())
 imagefile.flush()
 
-subprocess.check_call(['convert'] + convertargs + [str(screenwidth).strip('\n ') + 'x', '-pointsize', '48', 'caption:' + title, '-gravity', 'north', '-splice', '0x10', titlefile.name])
+subprocess.check_call(['convert'] + convertargs + [str(screenwidth).strip('\n ') + 'x', '-pointsize', '48', 'caption:' + title,   '-gravity', 'north', '-splice', '0x10', titlefile.name])
 subprocess.check_call(['convert'] + convertargs + [str(screenwidth).strip('\n ') + 'x', '-pointsize', '24', 'caption:' + caption, '-gravity', 'south', '-splice', '0x10', captionfile.name])
 
 subprocess.check_call(['convert', '-background', color, '-alpha', 'on', '-gravity', 'center', '-append', titlefile.name, imagefile.name, captionfile.name, resultfile.name])
