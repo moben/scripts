@@ -55,7 +55,7 @@ except OSError:
 	exit("This script needs the convert and identify tools from the ImageMagick project")
 
 
-def urlopen2(url):
+def my_urlopen(url):
 	try:
 		x = urllib2.urlopen(url)
 	except urllib2.URLError, reason:
@@ -88,7 +88,7 @@ resultfile = tempfile.NamedTemporaryFile(suffix='.png')
 
 resultheight = 0
 
-index = urlopen2(url)
+index = my_urlopen(url)
 
 myparser = etree.XMLParser(recover=True)
 index2 = etree.parse(index, myparser)
@@ -111,7 +111,7 @@ imgsrc = img.attrib.get('src')
 #caption = textwrap.fill(img.attrib.get('title'))
 caption = img.attrib.get('title')
 
-image = urlopen2(imgsrc)
+image = my_urlopen(imgsrc)
 
 imagefile.write(image.read())
 imagefile.flush()
