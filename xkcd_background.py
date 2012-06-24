@@ -21,14 +21,11 @@ file = "xkcd-background.png"
 # Font to use (needs to be in a format that ImageMagick can understand)
 # Get the default for free (as in beer) from
 # http://hvdfonts.com/assets/Document/15/HVD_Comic_Serif_Pro.zip
-font = "HVD-Comic-Serif-Pro-Regular"
+font = "HVDComicSerifPro"
 
 # The url to fetch from
 # Probably shouldn't change
 url  = "http://dynamic.xkcd.com/random/comic/"
-
-# Where the images live
-comicurl = "http://imgs.xkcd.com/comics/"
 
 color = "#ffffff80"
 convertargs = [ '-background', color, '-fill', 'black', '-gravity', 'center', '-font', font, '-size' ]
@@ -41,12 +38,10 @@ htmlns = r'{http://www.w3.org/1999/xhtml}'
 import sys, os, textwrap, subprocess, tempfile
 import urllib2
 from time import sleep
+from xml.dom.minidom import parse
+
 
 NULL = open("/dev/null")
-try:
-	from lxml import etree
-except ImportError:
-	exit("This script needs the libxml2 python bindings (e.g. libxml2-python on Fedora)")
 
 try:
 	subprocess.check_call(['convert', '-version'], stdout=NULL, stderr=NULL)
@@ -90,15 +85,17 @@ resultheight = 0
 
 index = my_urlopen(url)
 
-myparser = etree.XMLParser(recover=True)
-index2 = etree.parse(index, myparser)
+index2 = parse(index)
+div_tags = index2.getElementsByTagName("div")
+img_tags = index2.getElementsByTagName("img")
 
-title = index2.find('//{http://www.w3.org/1999/xhtml}h1').text
-#print "Comic: " + title
-for tag in index2.getroot().iter('{http://www.w3.org/1999/xhtml}img'):
-	if tag.attrib.get('src').startswith(comicurl):
-		img = tag
-#		img = index2.find(htmlns + 'img[@title]')
+print img_tags
+
+for tag in img_tags:
+	if tag.hasAttribute("title"):
+		title   = tag.getAttribute("alt")
+		caption = tag.getAttribute("title")
+		image   = tag.getAttribute("src")
 		break
 else:
 	print """
@@ -107,19 +104,23 @@ Additional information:
 Random url:""", index.geturl()
 	exit(100)
 
-imgsrc = img.attrib.get('src')
-#caption = textwrap.fill(img.attrib.get('title'))
-caption = img.attrib.get('title')
 
-image = my_urlopen(imgsrc)
+print "Comic   :", title
+print "Caption :", caption
+print "Url     :", image
+
+
+#caption = textwrap.fill(caption)
+
+image = my_urlopen(image)
 
 imagefile.write(image.read())
 imagefile.flush()
 
-subprocess.check_call(['convert'] + convertargs + [str(screenwidth).strip('\n ') + 'x', '-pointsize', '48', 'caption:' + title,   '-gravity', 'north', '-splice', '0x10', titlefile.name])
-subprocess.check_call(['convert'] + convertargs + [str(screenwidth).strip('\n ') + 'x', '-pointsize', '24', 'caption:' + caption, '-gravity', 'south', '-splice', '0x10', captionfile.name])
+subprocess.check_call(['convert'] + convertargs + [str(screenwidth).strip('\n ') + 'x', '-alpha', 'on', '-pointsize', '48', 'caption:' + title,   '-gravity', 'north', '-splice', '0x10', titlefile.name])
+subprocess.check_call(['convert'] + convertargs + [str(screenwidth).strip('\n ') + 'x', '-alpha', 'on', '-pointsize', '24', 'caption:' + caption, '-gravity', 'south', '-splice', '0x10', captionfile.name])
 
-subprocess.check_call(['convert', '-background', color, '-alpha', 'on', '-gravity', 'center', '-append', titlefile.name, imagefile.name, captionfile.name, resultfile.name])
+subprocess.check_call(['convert', '-background', color, '-alpha', 'Remove', '-gravity', 'center', '-append', titlefile.name, imagefile.name, captionfile.name, resultfile.name])
 
 
 resultheight = int(subprocess.check_output(['identify', '-format', '%h', resultfile.name]))
