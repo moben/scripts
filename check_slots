@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+
+# Copyright 2013 Benedikt Morbach <moben@exherbo.org>
+# Distributed under the terms of the GNU General Public License v2
+
+return_code=0
+
+usage() {
+    echo "You need to pass at least one package name as a command line argument."
+    echo "This script takes anything that 'cave print-ids -m' would take and that supports the 'install' action."
+    echo "It returns a report for every matching package."
+    echo ""
+    echo "Parameters:"
+    echo "   --help / -h   :  This text"
+    echo "   --no-magic    :  Turn colors and formatting off (useful for pasting)"
+#   echo "   --only-broken :  Only output packages with slot problems"
+}
+
+# defaults
+magic=on
+show_all=on
+default='\033[0m'
+red='\033[1;31m'
+green='\033[32m'
+
+if [[ $1 == '-h' ]] || [[ $1 == '--help' ]] ; then
+    usage
+    exit
+elif [[ $1 == '--no-magic' ]] ; then
+    magic=off
+    shift 1
+fi
+
+if [[ $# -lt 1 ]] ; then
+    usage
+    exit 1
+fi
+
+echo "Collecting slotted packages..."
+
+slotted_pkgs=(
+    $(cave print-ids -s install                       \
+                     -m '*/*[.SLOT?]'                 \
+                     -m '*/*[.SLOT!=0]'               \
+                     -f '%c/%p\n'           | sort -u )
+)
+
+echo "Looking for slotting problems..."
+
+for arg in "$@" ; do
+    for fqdn in $(cave print-ids -s install -m "${arg}"'[.DEPENDENCIES?]') ; do
+        nicely_slotted=yes
+        problems=()
+
+        [[ $magic == on ]] && echo -e -n "${fqdn} : checking..."
+    
+        # remove annotations, so that we don't get false positives in there
+        # I'd rather like to use sed in here, but that can't do non-greedy matches
+        fqdn_deps=$(cave print-id-metadata --format '%v' --raw-name DEPENDENCIES "=${fqdn}" | perl -pe 's#\[\[.*?\]\]##g')
+    
+        for slotted in "${slotted_pkgs[@]}" ; do
+            echo "${fqdn_deps}" | grep -q -E "${slotted}"'(\[| )'
+            if [[ $? -eq 0 ]] ; then
+                nicely_slotted=no
+                problems+=( "${slotted}" )
+            fi
+        done
+    
+        # We are going to rewrite the whole line in pretty colors now
+        [[ $magic == on ]] && echo -n -e '\r'
+
+        if [[ $nicely_slotted == yes ]] && [[ $show_all == on ]] ; then
+            echo -e "${green}${fqdn}${default} : Everything alright"
+        else
+            echo -e "${red}${fqdn}${default} : Found some slotting problems:"
+            for prob in "${problems[@]}" ; do
+                echo "    ${prob}"
+            done
+            return_code=1
+        fi
+    done
+done
+
+exit $return_code
