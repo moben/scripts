@@ -79,7 +79,7 @@ for arg in "$@" ; do
         done
     
         # We are going to rewrite the whole line in pretty colors now
-        [[ $magic == on ]] && echo -n -e '\r'
+        [[ $magic == on ]] && echo -n -e '\r\033[K'
 
         if [[ $nicely_slotted == yes ]] ; then
             [[ $show_all == on ]] && echo -e "${green}${fqdn}${default} : Everything alright"
