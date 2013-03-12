@@ -1,6 +1,6 @@
 #!/bin/bash
 
-EXPATH="${HOME}/Hacking/exherbo"
+EXPATH="${HOME}/Hacking/exherbo/repositories"
 
 # fail if without network
 nm-online -x -q
