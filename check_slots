@@ -19,6 +19,13 @@ usage() {
     echo "   -o, --only-broken :  Only output packages with slot problems"
 }
 
+parsed_opts=$(getopt -o hco --long help,no-magic,only-broken -n check_slots -- "$@")
+
+# getopt failed and will print an error message for us. Add our usage text to it
+if [ $? != 0 ] ; then echo "" ; usage ; exit 1 ; fi
+
+eval set -- "${parsed_opts}"
+
 # defaults
 magic=on
 show_all=on
@@ -32,7 +39,6 @@ while true ; do
         -c | --no-magic ) magic=off ; shift 1 ;;
         -o | --only-broken ) show_all=off ; shift 1 ;;
         -- ) shift 1 ; break ;;
-        -* ) echo "Unknown parameter" ; usage ; exit 2 ;;
         * ) break ;;
     esac
 done
