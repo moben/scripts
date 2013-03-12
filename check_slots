@@ -67,11 +67,13 @@ for arg in "$@" ; do
         [[ $magic == on ]] && echo -e -n "${fqdn} : checking..."
     
         # remove annotations, so that we don't get false positives in there
+        # also remove version and option deps, to speed up grep down there
         # I'd rather like to use sed in here, but that can't do non-greedy matches
-        fqdn_deps=$(cave print-id-metadata --format '%v' --raw-name DEPENDENCIES "=${fqdn}" | perl -pe 's#\[\[.*?\]\]##g')
+        fqdn_deps=$(cave print-id-metadata --format '%v' --raw-name DEPENDENCIES "=${fqdn}" \
+                  | perl -p -e 's#\[\[.*?\]\]##g;' -e 's#\[.*?\]##g;')
     
         for slotted in "${slotted_pkgs[@]}" ; do
-            echo "${fqdn_deps}" | grep -q -E "${slotted}"'(\[| )'
+            echo "${fqdn_deps}" | grep -q "${slotted} "
             if [[ $? -eq 0 ]] ; then
                 nicely_slotted=no
                 problems+=( "${slotted}" )
