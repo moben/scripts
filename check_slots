@@ -82,7 +82,7 @@ for arg in "$@" ; do
             for prob in "${problems[@]}" ; do
                 echo "    ${prob}"
             done
-            return_code=1
+            return_code=100
         fi
     done
 done
