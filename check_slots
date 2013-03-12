@@ -75,8 +75,8 @@ for arg in "$@" ; do
         # We are going to rewrite the whole line in pretty colors now
         [[ $magic == on ]] && echo -n -e '\r'
 
-        if [[ $nicely_slotted == yes ]] && [[ $show_all == on ]] ; then
-            echo -e "${green}${fqdn}${default} : Everything alright"
+        if [[ $nicely_slotted == yes ]] ; then
+            [[ $show_all == on ]] && echo -e "${green}${fqdn}${default} : Everything alright"
         else
             echo -e "${red}${fqdn}${default} : Found some slotting problems:"
             for prob in "${problems[@]}" ; do
