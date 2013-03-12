@@ -12,10 +12,11 @@ usage() {
     echo "This script takes anything that 'cave print-ids -m' would take and that supports the 'install' action."
     echo "It returns a report for every matching package."
     echo ""
+    echo "It optionally takes some paramaters, which must be given _before_ the packages."
     echo "Parameters:"
-    echo "   --help / -h   :  This text"
-    echo "   --no-magic    :  Turn colors and formatting off (useful for pasting)"
-#   echo "   --only-broken :  Only output packages with slot problems"
+    echo "   -h, --help        :  This text"
+    echo "   -c, --no-magic    :  Turn colors and formatting off (useful for pasting)"
+    echo "   -o, --only-broken :  Only output packages with slot problems"
 }
 
 # defaults
@@ -25,13 +26,16 @@ default='\033[0m'
 red='\033[1;31m'
 green='\033[32m'
 
-if [[ $1 == '-h' ]] || [[ $1 == '--help' ]] ; then
-    usage
-    exit
-elif [[ $1 == '--no-magic' ]] ; then
-    magic=off
-    shift 1
-fi
+while true ; do
+    case "${1}" in
+        -h | --help ) usage ; exit ;;
+        -c | --no-magic ) magic=off ; shift 1 ;;
+        -o | --only-broken ) show_all=off ; shift 1 ;;
+        -- ) shift 1 ; break ;;
+        -* ) echo "Unknown parameter" ; usage ; exit 2 ;;
+        * ) break ;;
+    esac
+done
 
 if [[ $# -lt 1 ]] ; then
     usage
