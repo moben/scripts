@@ -53,10 +53,10 @@ fi
 
 echo "Collecting slotted packages..."
 
-slotted_pkgs=$(cave print-ids -s install                       \
-                              -m '*/*[.SLOT?]'                 \
-                              -m '*/*[.SLOT!=0]'               \
-                              -f '%c/%p\n'           | sort -u )
+slotted_pkgs=$(cave print-ids -s install         \
+                              -m '*/*[.SLOT?]'   \
+                              -m '*/*[.SLOT!=0]' \
+                              -f '%c/%p\n'       )
 
 echo "Looking for slotting problems..."
 
@@ -75,7 +75,7 @@ for arg in "$@" ; do
         for dep in ${fqdn_deps} ; do
             if [[ "${slotted_pkgs}" =~ ${dep} ]] ; then
                 nicely_slotted=no
-                problems+=( "${dep}" )
+                problems+=( ${dep} )
             fi
         done
     
