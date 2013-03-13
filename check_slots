@@ -53,12 +53,10 @@ fi
 
 echo "Collecting slotted packages..."
 
-slotted_pkgs=(
-    $(cave print-ids -s install                       \
-                     -m '*/*[.SLOT?]'                 \
-                     -m '*/*[.SLOT!=0]'               \
-                     -f '%c/%p\n'           | sort -u )
-)
+slotted_pkgs=$(cave print-ids -s install                       \
+                              -m '*/*[.SLOT?]'                 \
+                              -m '*/*[.SLOT!=0]'               \
+                              -f '%c/%p\n'           | sort -u )
 
 echo "Looking for slotting problems..."
 
@@ -68,18 +66,16 @@ for arg in "$@" ; do
         problems=()
 
         [[ $magic == on ]] && echo -e -n "${fqdn} : checking..."
-    
-        # remove annotations, so that we don't get false positives in there
-        # also remove version and option deps, to speed up grep down there
-        # I'd rather like to use sed in here, but that can't do non-greedy matches
+
+        # Get anything that looks like a category/package and doesn't have a slot dep (operator)
+        # The allowed characters are taken from gentoo PMS. I assume exheres-0 didn't change those.
         fqdn_deps=$(cave print-id-metadata --format '%v' --raw-name DEPENDENCIES "=${fqdn}" \
-                  | perl -p -e 's#\[\[.*?\]\]##g;' -e 's#\[.*?\]##g;')
-    
-        for slotted in "${slotted_pkgs[@]}" ; do
-            echo "${fqdn_deps}" | grep -q "${slotted} "
-            if [[ $? -eq 0 ]] ; then
+                  | grep -E '[A-Za-z0-9+_.-]*/[A-Za-z0-9+_.-]*( |\[)' -o | sed -e 's#.$##g' )
+
+        for dep in ${fqdn_deps} ; do
+            if [[ "${slotted_pkgs}" =~ ${dep} ]] ; then
                 nicely_slotted=no
-                problems+=( "${slotted}" )
+                problems+=( "${dep}" )
             fi
         done
     
