@@ -53,10 +53,12 @@ fi
 
 echo "Collecting slotted packages..."
 
-slotted_pkgs=$(cave print-ids -s install         \
-                              -m '*/*[.SLOT?]'   \
-                              -m '*/*[.SLOT!=0]' \
-                              -f '%c/%p\n'       )
+slotted_pkgs=(
+    $(cave print-ids -s install         \
+                     -m '*/*[.SLOT?]'   \
+                     -m '*/*[.SLOT!=0]' \
+                     -f '%c/%p\n'       )
+)
 
 echo "Looking for slotting problems..."
 
@@ -73,10 +75,13 @@ for arg in "$@" ; do
                   | grep -E '[A-Za-z0-9+_.-]*/[A-Za-z0-9+_.-]*( |\[)' -o | sed -e 's#.$##g' )
 
         for dep in ${fqdn_deps} ; do
-            if [[ "${slotted_pkgs}" =~ ${dep} ]] ; then
-                nicely_slotted=no
-                problems+=( ${dep} )
-            fi
+            for slotted in "${slotted_pkgs[@]}" ; do
+                if [[ ${slotted} == ${dep} ]] ; then
+                    nicely_slotted=no
+                    problems+=( ${dep} )
+                    break
+                fi
+            done
         done
     
         # We are going to rewrite the whole line in pretty colors now
