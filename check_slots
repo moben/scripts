@@ -3,7 +3,7 @@
 # Copyright 2013 Benedikt Morbach <moben@exherbo.org>
 # Distributed under the terms of the GNU General Public License v2
 
-# needs paludis 1.1.0 (currently unreleased, use scm if you want to use this)
+# needs paludis 1.2.0
 
 return_code=0
 
