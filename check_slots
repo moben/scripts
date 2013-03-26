@@ -3,8 +3,6 @@
 # Copyright 2013 Benedikt Morbach <moben@exherbo.org>
 # Distributed under the terms of the GNU General Public License v2
 
-# needs paludis 1.2.0
-
 return_code=0
 
 usage() {
@@ -46,9 +44,15 @@ if [[ $magic == on ]] ; then
     green='\033[32m'
 fi
 
-if [[ $# -lt 1 ]] ; then
+# needs paludis[>=1.2.0]
+paludis_major=$(cave --version | cut -d ' ' -f2 | cut -d '.' -f1)
+paludis_minor=$(cave --version | cut -d ' ' -f2 | cut -d '.' -f2)
+if [[ ${paludis_major} -lt 1 ]] || [[ ${paludis_minor} -lt 2 ]] ; then
     usage
     exit 1
+elif [[ $# -lt 1 ]] ; then
+    usage
+    exit 2
 fi
 
 echo "Collecting slotted packages..."
