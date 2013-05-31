@@ -1,0 +1,54 @@
+#!/bin/bash
+
+dirs=()
+
+if [[ -d .git ]] ; then
+	dirs=( . )
+else
+	for dir in * ; do
+		[[ -d "${dir}"/.git ]] || continue
+		dirs+=( "${dir}" )
+	done
+fi
+
+for dir in "${dirs[@]}" ; do
+	cd "${dir}"
+
+	list=( $(git status --porcelain --untracked-files=all | sed -e 's#^.. ##g') )
+
+	for line in "${list[@]}" ; do
+		if [[ "${line:${#line} - 6}" == ".exlib" ]] ; then
+			b=$(basename "${line}")
+			exlib="${b:0:-6}"
+			for pkg in $(cave print-ids -s install -m "*/*[.INHERITED<${exlib}]" -f 'packages/%c/%p/%p-%v.exheres-0\n') ; do
+				[[ -e "${pkg}" ]] && list+=( "${pkg}" )
+			done
+
+			git add "${line}"
+		fi
+	done
+
+	for line in "${list[@]}" ; do
+		if [[ "${line:${#line} - 10}" == ".exheres-0" ]] ; then
+			base="${line:0:-10}"
+
+			if echo "${base}" | egrep -q -- '-scm$' ; then
+				git add "${base}".exheres-0
+				continue
+			elif echo "${base}" | egrep -q -- '-r[[:digit:]]+$' ; then
+				[[ "$base" =~ (.*r)([0-9]+)$ ]] && newbase="${BASH_REMATCH[1]}$((${BASH_REMATCH[2]} + 1))";
+			else
+				newbase="${base}-r1"
+			fi
+		
+			git mv "${base}".exheres-0 "${newbase}".exheres-0
+			git add "${newbase}".exheres-0
+		fi
+	done
+
+	if [[ $# -ge 1 ]] ; then
+		git commit -m "$1"
+	fi
+
+	cd ..
+done
