@@ -30,10 +30,13 @@ for dir in "${DIRS[@]}" ; do
 	if [[ $is_online -eq 0 ]] ; then
 		git fetch --quiet
 	fi
-	if ! git diff --quiet ..origin/master ; then
+
+	remote_branch=$(git rev-parse --symbolic-full-name --abbrev-ref @{u})
+
+	if ! git diff --quiet .."${remote_branch}" ; then
 		echo -e "\033[1;32m$(basename "${PWD}")\033[0m"
-		git log --pretty=fuller -p -M10 -C -C --reverse ..origin/master ; true
-		git rebase -f origin/master | grep --color -E -A100 '^Applying:' || true
+		git log --pretty=fuller -p -M10 -C -C --reverse .."${remote_branch}" ; true
+		git rebase -f "${remote_branch}" | grep --color -E -A100 '^Applying:' || true
 		[[ "${PIPESTATUS[0]}" -ne 0 ]] && git rebase --abort ; true
 	fi
 
