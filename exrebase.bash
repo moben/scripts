@@ -1,7 +1,6 @@
 #!/bin/bash
 
 EXPATH="${HOME}/Hacking/exherbo/repositories"
-PAGER='less -Fr'
 
 # fail if without network
 nm-online -x -q
@@ -36,7 +35,7 @@ for dir in "${DIRS[@]}" ; do
 
 	[[ -z "${remote_branch}" ]] && continue
 
-	if ! git diff --quiet .."${remote_branch}" ; then
+	if [[ -n $(git log --pretty=oneline  .."${remote_branch}") ]] ; then
 		echo -e "\033[1;32m${PWD##*/}\033[0m"
 		git log --pretty=fuller -p -M10 -C -C --reverse .."${remote_branch}" ; true
 		git rebase -f "${remote_branch}" | grep --color -E -A100 '^Applying:' || true
