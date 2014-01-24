@@ -21,6 +21,16 @@ usage() {
     echo 'LD_LIBRARY_PATH="${PWD}/.libs:${LD_LIBRARY_PATH}" tmpi 16 gdb -q bin/.libs/example'
 }
 
+check_tools() {
+    tools=( tmux mpirun )
+
+    for tool in "${tools[@]}"; do
+        if ! which ${tool}; then
+            echo "You need to install ${tool} to run this script."
+        fi
+    done
+}
+
 if [[ ${#} -lt 2 ]]; then
     usage
 
