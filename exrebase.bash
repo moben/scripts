@@ -35,9 +35,11 @@ for dir in "${DIRS[@]}" ; do
 
 	[[ -z "${remote_branch}" ]] && continue
 
-	if [[ -n $(git log --pretty=oneline  .."${remote_branch}") ]] ; then
+	if [[ -n $(git log --pretty=oneline  "${remote_branch}"..) ]] ; then
 		echo -e "\033[1;32m${PWD##*/}\033[0m"
-		git log --pretty=fuller -p -M10 -C -C --reverse .."${remote_branch}" ; true
+		if [[ -n $(git log --pretty=oneline  .."${remote_branch}") ]] ; then
+			git log --pretty=fuller -p -M10 -C -C --reverse .."${remote_branch}" ; true
+		fi
 		git rebase -f "${remote_branch}" | grep --color -E -A100 '^Applying:' || true
 		[[ "${PIPESTATUS[0]}" -ne 0 ]] && git rebase --abort ; true
 	fi
