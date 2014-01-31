@@ -5,7 +5,8 @@
 
 # runs multiple MPI processes as a grid in a new tmux window and multiplexes keyboard input to all of them
 
-export LD_LIBRARY_PATH
+additional_vars=( LD_LIBRARY_PATH LD_PRELOAD )
+export "${additional_vars[@]}"
 
 usage() {
     echo 'tmpi: Run multiple MPI processes as a grid in a new tmux window and multiplex keyboard input to all of them.'
@@ -17,7 +18,7 @@ usage() {
     echo 'The first argument is the number of processes to use, every argument after that is the commandline to run.'
     echo 'If you call this script from outside tmux and your command contains important whitespace then you need to appy two levels of quoting to preserve it.' 
     echo ''
-    echo 'LD_LIBRARY_PATH is passed through, so you can run it like this:'
+    echo 'LD_LIBRARY_PATH and LD_PRELOAD are passed through, so you can run it like this:'
     echo 'LD_LIBRARY_PATH="${PWD}/.libs:${LD_LIBRARY_PATH}" tmpi 16 gdb -q bin/.libs/example'
 }
 
@@ -58,7 +59,7 @@ if [[ ${1} == runmpi ]] ; then
 
     # get all the variables that mpirun starts us with so that we can pass them through.
     mpi_vars=( $( env | grep -e MPI -e OPAL | cut -d '=' -f1 ) )
-    mpi_vars+=( LD_LIBRARY_PATH )
+    mpi_vars+=( "${additional_vars[@]}" )
 
     # add the variables to tmux' session environment.
     # we can't just export them because the process will be started as a child of tmux, not us.
