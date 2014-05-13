@@ -2,6 +2,8 @@
 
 EXPATH="${HOME}/Hacking/exherbo/repositories"
 
+USE_TIG=1
+
 # fail if without network
 nm-online -x -q
 
@@ -35,12 +37,23 @@ for dir in "${DIRS[@]}" ; do
 
 	[[ -z "${remote_branch}" ]] && continue
 
-	if [[ -n $(git log --pretty=oneline  "${remote_branch}"..) ]] ; then
+	# A...B is symmetric difference, which is the sum of commits on both branches since the last common ancestor
+	if [[ $(git rev-list --count  ..."${remote_branch}") -gt 0 ]] ; then
 		echo -e "\033[1;32m${PWD##*/}\033[0m"
-		if [[ -n $(git log --pretty=oneline  .."${remote_branch}") ]] ; then
-			git log --pretty=fuller -p -M10 -C -C --reverse .."${remote_branch}" ; true
+
+		if [[ $(git rev-list --count  .."${remote_branch}") -gt 0 ]] ; then
+			if [[ ${USE_TIG} == 1 ]] ; then
+				tig -p -M10 -C -C --reverse .."${remote_branch}" ; true
+			else
+				git log --pretty=fuller -p -M10 -C -C --reverse .."${remote_branch}" ; true
+			fi
 		fi
-		git rebase -f "${remote_branch}" | grep --color -E -A100 '^Applying:' || true
+
+		if [[ $(git rev-list --count  "${remote_branch}"..) -gt 0 ]] ; then
+			git rebase -f "${remote_branch}" | grep --color -E -A100 '^Applying:' || true
+		else
+			git rebase -f -q "${remote_branch}" ; true
+		fi
 		[[ "${PIPESTATUS[0]}" -ne 0 ]] && git rebase --abort ; true
 	fi
 
