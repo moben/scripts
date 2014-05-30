@@ -23,7 +23,6 @@ fi
 # fail if any variable is undefined
 set -u
 
-#IFS='\0' find "${EXPATH}" -maxdepth 3 -type d -print0 | while read -d $'\0' dir ; do
 for dir in "${DIRS[@]}" ; do
 	! [[ -d "${dir}"/.git ]] && continue
 
