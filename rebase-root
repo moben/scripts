@@ -1,0 +1,76 @@
+#!/bin/bash
+
+if [[ ${#} -ne 4 ]]; then
+    echo "needs 4 args: <old snapshot> <old root> <new snapshot> <new root>"
+    exit 127
+fi
+
+shopt -s extglob
+shopt -s nullglob
+shopt -s dotglob
+
+# nonfatal
+edo() {
+    [[ ${#} -ge 1 ]] || { echo "edo needs args"; return; }
+    echo "${@}"
+    "${@}" || echo "FAILED: ${@}"
+}
+
+_config_copy() {
+    [[ ${#} -eq 3 ]] || { echo "_config_copy needs 2 args"; return; }
+    local src_dir=${1} dst_dir=${2} file=${3}
+    local cfg i=0
+    
+    while cfg=$(printf "._cfg%04d_${file}" ${i}); [[ -f ${dst_dir}/${cfg} ]]; do
+        i=$((++i))
+    done
+
+    edo cp -a ${src_dir}/${file} ${dst_dir}/${cfg}
+}
+
+_rebase_root() {
+    if [[ ${#} -ne 4 ]]; then
+        echo "needs 4 args: <old snapshot> <old root> <new snapshot> <new root>"
+        exit 127
+    fi
+    
+    old_snap=${1}
+    old_root=${2}
+    new_snap=${3}
+    new_root=${4}
+
+    for p in "${2}"/*; do
+        f=${p##${2}*(/)}
+
+        if [[ -L ${2}/${f} ]]; then
+            if [[ $(readlink "${2}/${f}") != $(readlink "${1}/${f}") ]]; then
+#                echo "CHANGED SYMLINK: ${f} $(readlink "${1}/${f}") -> $(readlink "${2}/${f}")"
+                edo cp -a "${2}/${f}" "${4}/${f}"
+            fi
+        elif [[ -d ${2}/${f} ]]; then
+            if [[ ! -d ${1}/${f} ]]; then
+#                echo "NEW DIR: ${f}"
+                edo cp -a "${2}/${f}" "${4}/${f}"
+            else
+#                echo "RECURSING INTO ${f}"
+                _rebase_root {"${1}","${2}","${3}","${4}"}/"${f}"
+            fi
+        elif [[ -f ${2}/${f} ]]; then
+            if [[ ! -e ${1}/${f} ]]; then
+#                echo "NEW FILE: ${f}"
+                edo cp -a "${2}/${f}" "${4}/${f}"
+            else
+                if diff -q "${2}/${f}" "${1}/${f}" &>/dev/null; then
+                    # same
+                    :;
+                else
+#                    echo "MODIFIED: ${f}"
+                    _config_copy "${2}" "${4}" "${f}"
+                fi
+            fi     
+        fi
+    done
+}
+
+_rebase_root "${@}"
+
