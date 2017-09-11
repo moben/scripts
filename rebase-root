@@ -5,6 +5,11 @@ if [[ ${#} -ne 4 ]]; then
     exit 127
 fi
 
+old_snap=${1}
+old_root=${2}
+new_snap=${3}
+new_root=${4}
+
 shopt -s extglob
 shopt -s nullglob
 shopt -s dotglob
@@ -34,38 +39,45 @@ _rebase_root() {
         exit 127
     fi
     
-    old_snap=${1}
-    old_root=${2}
-    new_snap=${3}
-    new_root=${4}
-
     for p in "${2}"/*; do
         f=${p##${2}*(/)}
 
         if [[ -L ${2}/${f} ]]; then
             if [[ $(readlink "${2}/${f}") != $(readlink "${1}/${f}") ]]; then
-#                echo "CHANGED SYMLINK: ${f} $(readlink "${1}/${f}") -> $(readlink "${2}/${f}")"
-                edo cp -a "${2}/${f}" "${4}/${f}"
+                echo "CHANGED SYMLINK: ${f} $(readlink "${1}/${f}") -> $(readlink "${2}/${f}")"
+                read -p "Action? [c]opy/[i]gnore/[s]kip: " -e -i "c" action
+                if [[ ${action} == c ]]; then
+                  edo cp -a "${2}/${f}" "${4}/${f}"
+                fi
             fi
         elif [[ -d ${2}/${f} ]]; then
             if [[ ! -d ${1}/${f} ]]; then
-#                echo "NEW DIR: ${f}"
-                edo cp -a "${2}/${f}" "${4}/${f}"
+                echo "NEW DIR: ${f}"
+                read -p "Action? [c]opy/[i]gnore/[s]kip: " -e -i "c" action
+                if [[ ${action} == c ]]; then
+                  edo cp -a "${2}/${f}" "${4}/${f}"
+                fi
             else
 #                echo "RECURSING INTO ${f}"
                 _rebase_root {"${1}","${2}","${3}","${4}"}/"${f}"
             fi
         elif [[ -f ${2}/${f} ]]; then
             if [[ ! -e ${1}/${f} ]]; then
-#                echo "NEW FILE: ${f}"
-                edo cp -a "${2}/${f}" "${4}/${f}"
+                echo "NEW FILE: ${f}"
+                read -p "Action? [c]opy/[i]gnore/[s]kip: " -e -i "c" action
+                if [[ ${action} == c ]]; then
+                  edo cp -a "${2}/${f}" "${4}/${f}"
+                fi
             else
                 if diff -q "${2}/${f}" "${1}/${f}" &>/dev/null; then
                     # same
                     :;
                 else
-#                    echo "MODIFIED: ${f}"
-                    _config_copy "${2}" "${4}" "${f}"
+                    echo "MODIFIED: ${f}"
+                    read -p "Action? [c]opy/[i]gnore/[s]kip: " -e -i "c" action
+                    if [[ ${action} == c ]]; then
+                      _config_copy "${2}" "${4}" "${f}"
+                    fi
                 fi
             fi     
         fi
