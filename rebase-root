@@ -10,14 +10,28 @@ old_root=${2}
 new_snap=${3}
 new_root=${4}
 
+declare -a ignores=()
+
 shopt -s extglob
 shopt -s nullglob
 shopt -s dotglob
 
+has() {
+    needle=${1}
+    shift
+
+    for hay in "${@}"; do
+        if [[ ${needle} == ${hay} ]]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
 # nonfatal
 edo() {
     [[ ${#} -ge 1 ]] || { echo "edo needs args"; return; }
-    echo "${@}"
+    echo "    ${@}"
     "${@}" || echo "FAILED: ${@}"
 }
 
@@ -30,7 +44,20 @@ _config_copy() {
         i=$((++i))
     done
 
-    edo cp -a ${src_dir}/${file} ${dst_dir}/${cfg}
+    edo cp -aT ${src_dir}/${file} ${dst_dir}/${cfg}
+}
+
+_read_ignores() {
+    mapfile -t ignores < "${1}"/rebase-root.ignores
+}
+
+_write_ignores() {
+    nr=${1}
+    shift
+
+    for i in "${@}"; do
+        echo "${i}" >> "${nr}"/rebase-root.ignores
+    done
 }
 
 _rebase_root() {
@@ -40,43 +67,64 @@ _rebase_root() {
     fi
     
     for p in "${2}"/*; do
-        f=${p##${2}*(/)}
+        f=${p##${old_root}*(/)}
 
-        if [[ -L ${2}/${f} ]]; then
-            if [[ $(readlink "${2}/${f}") != $(readlink "${1}/${f}") ]]; then
-                echo "CHANGED SYMLINK: ${f} $(readlink "${1}/${f}") -> $(readlink "${2}/${f}")"
-                read -p "Action? [c]opy/[i]gnore/[s]kip: " -e -i "c" action
+        if has "${f}" "${ignores[@]}" || has "${f%+(/).*}" "${ignores[@]}"; then
+            echo "IGNORED: ${f}"
+            continue
+        fi
+
+        if [[ -L ${old_root}/${f} ]]; then
+            if [[ $(readlink "${old_root}/${f}") != $(readlink "${old_snap}/${f}") ]]; then
+                echo "CHANGED SYMLINK: ${f} $(readlink "${old_snap}/${f}") -> $(readlink "${old_root}/${f}")"
+                read -p "Action? [c]opy/[i]gnore/[s]kip: " -e  action
                 if [[ ${action} == c ]]; then
-                  edo cp -a "${2}/${f}" "${4}/${f}"
+                    edo cp -aT "${old_root}/${f}" "${new_root}/${f}"
+                elif [[ ${action} == i ]]; then
+                    read -p "Ignore path: " -e -i "${f}" ignore
+                    ignore=${ignore%%*(/)}
+                    ignores+=( "${ignore}" )
                 fi
             fi
-        elif [[ -d ${2}/${f} ]]; then
-            if [[ ! -d ${1}/${f} ]]; then
+        elif [[ -d ${old_root}/${f} ]]; then
+            if [[ ! -d ${old_snap}/${f} ]]; then
                 echo "NEW DIR: ${f}"
-                read -p "Action? [c]opy/[i]gnore/[s]kip: " -e -i "c" action
+                read -p "Action? [c]opy/[i]gnore/[s]kip: " -e action
                 if [[ ${action} == c ]]; then
-                  edo cp -a "${2}/${f}" "${4}/${f}"
+                    edo cp -aT "${old_root}/${f}" "${new_root}/${f}"
+                elif [[ ${action} == i ]]; then
+                    read -p "Ignore path: " -e -i "${f}" ignore
+                    ignore=${ignore%%*(/)}
+                    ignores+=( "${ignore}" )
                 fi
             else
 #                echo "RECURSING INTO ${f}"
                 _rebase_root {"${1}","${2}","${3}","${4}"}/"${f}"
             fi
-        elif [[ -f ${2}/${f} ]]; then
-            if [[ ! -e ${1}/${f} ]]; then
+        elif [[ -f ${old_root}/${f} ]]; then
+            if [[ ! -e ${old_snap}/${f} ]]; then
                 echo "NEW FILE: ${f}"
-                read -p "Action? [c]opy/[i]gnore/[s]kip: " -e -i "c" action
+                read -p "Action? [c]opy/[i]gnore/[s]kip: " -e action
                 if [[ ${action} == c ]]; then
-                  edo cp -a "${2}/${f}" "${4}/${f}"
+                    edo cp -aT "${old_root}/${f}" "${new_root}/${f}"
+                elif [[ ${action} == i ]]; then
+                    read -p "Ignore path: " -e -i "${f}" ignore
+                    ignore=${ignore%%*(/)}
+                    ignores+=( "${ignore}" )
                 fi
             else
-                if diff -q "${2}/${f}" "${1}/${f}" &>/dev/null; then
+                if diff -q "${old_root}/${f}" "${old_snap}/${f}" &>/dev/null; then
                     # same
                     :;
                 else
                     echo "MODIFIED: ${f}"
-                    read -p "Action? [c]opy/[i]gnore/[s]kip: " -e -i "c" action
+                    read -p "Action? [c]opy/[i]gnore/[s]kip: " -e action
                     if [[ ${action} == c ]]; then
-                      _config_copy "${2}" "${4}" "${f}"
+                      _config_copy "${old_root}" "${new_root}" "${f}"
+                    elif [[ ${action} == i ]]; then
+                        read -p "Ignore path: " -e -i "${f}" ignore
+                        ignore=${ignore%%*(/)}
+                        ignores+=( "${ignore}" )
                     fi
                 fi
             fi     
@@ -84,5 +132,9 @@ _rebase_root() {
     done
 }
 
+_read_ignores "${old_root}"
+
 _rebase_root "${@}"
+
+_write_ignores "${new_root}" "${ignores[@]}"
 
