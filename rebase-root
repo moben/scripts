@@ -60,6 +60,22 @@ _write_ignores() {
     done
 }
 
+_ask_copy_ignore() {
+    local action
+
+    while true; do
+        read -p "Action? [c]opy/[i]gnore/[s]kip: " -e  action
+        if [[ ${action} == c ]]; then
+            return 0
+        elif [[ ${action} == i ]]; then
+            read -p "Ignore path: " -e -i "${1}" ignore
+            ignore=${ignore%%*(/)}
+            ignores+=( "${ignore}" )
+            return 1
+        fi
+    done
+}
+
 _rebase_root() {
     if [[ ${#} -ne 4 ]]; then
         echo "needs 4 args: <old snapshot> <old root> <new snapshot> <new root>"
@@ -77,25 +93,15 @@ _rebase_root() {
         if [[ -L ${old_root}/${f} ]]; then
             if [[ $(readlink "${old_root}/${f}") != $(readlink "${old_snap}/${f}") ]]; then
                 echo "CHANGED SYMLINK: ${f} $(readlink "${old_snap}/${f}") -> $(readlink "${old_root}/${f}")"
-                read -p "Action? [c]opy/[i]gnore/[s]kip: " -e  action
-                if [[ ${action} == c ]]; then
+                if _ask_copy_ignore "${f}"; then
                     edo cp -aT "${old_root}/${f}" "${new_root}/${f}"
-                elif [[ ${action} == i ]]; then
-                    read -p "Ignore path: " -e -i "${f}" ignore
-                    ignore=${ignore%%*(/)}
-                    ignores+=( "${ignore}" )
                 fi
             fi
         elif [[ -d ${old_root}/${f} ]]; then
             if [[ ! -d ${old_snap}/${f} ]]; then
                 echo "NEW DIR: ${f}"
-                read -p "Action? [c]opy/[i]gnore/[s]kip: " -e action
-                if [[ ${action} == c ]]; then
+                if _ask_copy_ignore "${f}"; then
                     edo cp -aT "${old_root}/${f}" "${new_root}/${f}"
-                elif [[ ${action} == i ]]; then
-                    read -p "Ignore path: " -e -i "${f}" ignore
-                    ignore=${ignore%%*(/)}
-                    ignores+=( "${ignore}" )
                 fi
             else
 #                echo "RECURSING INTO ${f}"
@@ -104,13 +110,8 @@ _rebase_root() {
         elif [[ -f ${old_root}/${f} ]]; then
             if [[ ! -e ${old_snap}/${f} ]]; then
                 echo "NEW FILE: ${f}"
-                read -p "Action? [c]opy/[i]gnore/[s]kip: " -e action
-                if [[ ${action} == c ]]; then
+                if _ask_copy_ignore "${f}"; then
                     edo cp -aT "${old_root}/${f}" "${new_root}/${f}"
-                elif [[ ${action} == i ]]; then
-                    read -p "Ignore path: " -e -i "${f}" ignore
-                    ignore=${ignore%%*(/)}
-                    ignores+=( "${ignore}" )
                 fi
             else
                 if diff -q "${old_root}/${f}" "${old_snap}/${f}" &>/dev/null; then
@@ -118,13 +119,8 @@ _rebase_root() {
                     :;
                 else
                     echo "MODIFIED: ${f}"
-                    read -p "Action? [c]opy/[i]gnore/[s]kip: " -e action
-                    if [[ ${action} == c ]]; then
-                      _config_copy "${old_root}" "${new_root}" "${f}"
-                    elif [[ ${action} == i ]]; then
-                        read -p "Ignore path: " -e -i "${f}" ignore
-                        ignore=${ignore%%*(/)}
-                        ignores+=( "${ignore}" )
+                    if _ask_copy_ignore "${f}"; then
+                        _config_copy "${old_root}" "${new_root}" "${f}"
                     fi
                 fi
             fi     
