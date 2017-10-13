@@ -4,11 +4,6 @@ EXPATH="${HOME}/Hacking/exherbo/repositories"
 
 USE_TIG=1
 
-# fail if without network
-nm-online -x -q
-
-is_online=$?
-
 if [[ $# -ge 1 ]] ; then
 	DIRS=()
 	for repo in "$@" ; do
@@ -28,9 +23,7 @@ for dir in "${DIRS[@]}" ; do
 
 	pushd "${dir}" &> /dev/null
 
-	if [[ $is_online -eq 0 ]] ; then
-		git fetch --quiet 2> /dev/null
-	fi
+	git fetch #--quiet 2> /dev/null
 
 	remote_branch=$(git rev-parse --symbolic-full-name --abbrev-ref @{u} 2> /dev/null)
 
