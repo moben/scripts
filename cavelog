@@ -1,5 +1,7 @@
 #!/bin/bash
 
+ROOT=${1}/
+
 rp='([0-9]+): (starting|finished) install of package ([^:]+)(:[^ ]+) \(([0-9]+ of [0-9]+).( ([0-9]+) failed\)|)'
 rt='[0-9]+: (starting|finished) install of targets (.*)'
 
@@ -9,7 +11,7 @@ grey='\e[90m'
 red='\e[1;31m'
 
 # read last 500 lines (overkill, but we potentially have to skip a lot of fetch lines)
-tail -F -n500 /var/log/paludis.log \
+tail -F -n500 "${ROOT}"var/log/paludis.log \
     | egrep --line-buffered '(starting|finished) install' \
     | while read line; do
         if [[ ${line} =~ ${rt} ]]; then
