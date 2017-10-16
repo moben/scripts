@@ -10,7 +10,7 @@ red='\e[1;31m'
 
 # read last 500 lines (overkill, but we potentially have to skip a lot of fetch lines)
 tail -F -n500 /var/log/paludis.log \
-    | egrep --line-buffered '(finished|) install' \
+    | egrep --line-buffered '(starting|finished) install' \
     | while read line; do
         if [[ ${line} =~ ${rt} ]]; then
             state=${BASH_REMATCH[1]}
