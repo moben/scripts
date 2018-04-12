@@ -2,8 +2,6 @@
 
 EXPATH="${HOME}/Hacking/exherbo/repositories"
 
-USE_TIG=1
-
 if [[ $# -ge 1 ]] ; then
 	DIRS=()
 	for repo in "$@" ; do
@@ -34,10 +32,8 @@ for dir in "${DIRS[@]}" ; do
 		echo -e "\033[1;32m${PWD##*/}\033[0m"
 
 		if [[ $(git rev-list --count  .."${remote_branch}") -gt 0 ]] ; then
-			if [[ ${USE_TIG} == 1 ]] ; then
+			if [[ ${#} -ge 1 ]] ; then
 				tig -p -M10 -C -C --reverse .."${remote_branch}" ; true
-			else
-				git log --pretty=fuller -p -M10 -C -C --reverse .."${remote_branch}" ; true
 			fi
 		fi
 
