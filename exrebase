@@ -21,7 +21,7 @@ for dir in "${DIRS[@]}" ; do
 
 	pushd "${dir}" &> /dev/null
 
-	git fetch #--quiet 2> /dev/null
+	git fetch --quiet 2> /dev/null
 
 	remote_branch=$(git rev-parse --symbolic-full-name --abbrev-ref @{u} 2> /dev/null)
 
