@@ -1,0 +1,32 @@
+#!/usr/bin/env python3
+
+import sys
+
+bits = int(sys.argv[1])
+
+inputs = sys.argv[2:]
+inputs = list(map(lambda x: int(x, 16), inputs))
+ixlen = max(map(lambda i: len(f'{i:x}'), inputs)) + 2
+iblen = max(map(lambda i: len(f'{i:b}'), inputs))
+
+if iblen > bits:
+    print(f'Warning, an input is longer than {bits} bits!')
+
+
+sn = ''; sp = ''; a = '↓'
+for n in range(0, bits, 4):
+    sn = ' ' + f'{n: >4}' + sn
+    sp = ' ' + f'{a: >4}' + sp
+
+print(' ' * ixlen, sn)
+print(' ' * ixlen, sp)
+
+for i in inputs:
+    s = f'{i:0>{bits}b}'
+    
+    sc = ''
+    for n in range(0, bits, 4):
+        sc = sc + ' ' + s[n:n+4]
+
+    print(f'{hex(i): >{ixlen}s}', sc)
+
