@@ -22,11 +22,12 @@ print(' ' * ixlen, sn)
 print(' ' * ixlen, sp)
 
 for i in inputs:
-    s = f'{i:0>{bits}b}'
+    # padding in case (bits % 4) != 0
+    s = f'    {i:0>{bits}b}'
     
     sc = ''
     for n in range(0, bits, 4):
-        sc = sc + ' ' + s[n:n+4]
+        sc = ' ' + s[len(s)-n-4:len(s)-n] +  sc
 
     print(f'{hex(i): >{ixlen}s}', sc)
 
