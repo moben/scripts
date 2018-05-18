@@ -1,0 +1,189 @@
+#!/bin/bash
+
+MAXPROCS=10
+
+shopt -s extglob
+
+die() {
+    echo "Error: ${@}" >&2
+    exit 2
+}
+
+print_progress_header() {
+    curl file:///dev/zero --range 0-0 2>&1 >/dev/null | head -n2
+}
+
+clear_lines() {
+    local i c="\r\033[K"
+    for ((i=1;i<${1};i++)); do
+        c+="\033[A\033[K"
+    done
+    echo -en "${c}" >&2
+}
+
+_pv() {
+    if type pv >/dev/null; then
+        echo -en "\r\033[A" >&2
+        pv ${filename:+-N "${filename}"}    \
+            -p -b "${@}"
+    else
+        cat "${@}"
+    fi
+}
+
+print_chunk_id() {
+    printf "%0${#MAXPROCS}d" ${1}
+}
+
+get_start() {
+    local start=$((${1} * chunksize))
+    [[ ${start} -ge ${filesize} ]] && return 1
+    echo ${start}
+}
+
+get_end() {
+    local end=$(((${1}+1) * chunksize - 1))
+    local end=$((end<filesize ? end : filesize - 1))
+    echo ${end}
+}
+
+get_tmpfile() {
+    echo "${tmpdir}/$(print_chunk_id ${1})"
+}
+
+get_filesize() {
+    if [[ -e ${1} ]]; then
+        stat -c '%s' "${1}"
+    else
+        echo 0
+    fi
+}
+
+foreach_chunk() {
+    local i lambda=${1}
+    shift
+    for ((i=0;i<MAXPROCS;i++)); do
+        local start=$(get_start ${i}) || continue
+        local end=$(get_end ${i})
+        local tmpfile=$(get_tmpfile ${i})
+
+        "${lambda}" "${@}"
+    done    
+}
+
+download_chunk() {
+    local size=$(get_filesize "${tmpfile}")
+    local resume=$((start+size))
+    [[ ${resume} -gt ${end} ]] && return 0
+
+    curl \
+        "${curlopts[@]}"                \
+        --range $((start+size))-${end}  \
+        "${url}"                        \
+        2>&1 >> "${tmpfile}" | interleave_output &
+}
+
+check_chunk() {
+    local got_chunksize=$(get_filesize "${tmpfile}")
+    if [[ $((end - start + 1)) != ${got_chunksize} ]]; then
+        die "filesize mismatch for chunk ${tmpfile}"
+    fi
+}
+
+add_chunk_size() {
+    let ${1}+=$(get_filesize "${tmpfile}")
+}
+
+interleave_output() {
+    local p padding='   '
+    while read -d $'\r' line; do
+        [[ ${line} =~ $'\n' ]] && continue
+        [[ ${line} =~ ^([0-9]+) ]] && p=${BASH_REMATCH[1]}
+        
+        echo -en "${padding%${p//?/ }}${line}\r" >&4
+    done 4>&1
+}
+
+do_download() {
+    if [[ $(get_filesize "${filename}") -ge ${filesize} ]]; then
+        _pv "${filename}" >/dev/null
+    elif [[ -z ${ranges} || -z ${filesize} ]]; then
+        curl ${filename:+-C - -o "${filename}"}     \
+            --progress-bar                          \
+            "${curlopts[@]}" "${url}"
+        clear_lines 3
+        [[ -n ${filename} ]] && _pv "${filename}" >/dev/null
+    else
+        chunksize=$((filesize / MAXPROCS + 1))
+
+        print_progress_header
+        foreach_chunk download_chunk
+
+        wait
+
+        clear_lines 3
+        foreach_chunk check_chunk
+        
+        if [[ -n ${filename} ]]; then
+            _pv "${tmpdir}"/* > "${filename}"
+        else
+            _pv "${tmpdir}"/*
+        fi
+    fi
+}
+
+stop_jobs() {
+    local jobs=( $(jobs -p) )
+    if [[ ${#jobs[@]} -gt 0 ]]; then
+        kill "${jobs[@]}" &>/dev/null
+    fi
+    exit 1
+}
+
+trap stop_jobs INT
+
+curlopts=()
+while [[ ${1} == -* ]]; do
+    curlopts+=( "${1}" )
+    shift
+done
+
+for url in "${@}"; do
+    [[ ${url} == -* ]] && die "specify options before urls"
+done
+
+
+[[ ${#} -gt 1 && ! -t 1 ]] && die "Can't redirect multiple urls"
+
+
+for url in "${@}"; do
+    if [[ -t 1 ]]; then
+        filename=${url##*/}
+        filename=${filename%%\?*}
+        filename=$(echo -e "${filename//%/\\x}")
+        echo "${filename}:" >&2
+
+        tmpdir=".pcurl_tmp_${MAXPROCS}_${filename}"
+    else
+        tmpdir=".pcurl_tmp_${MAXPROCS}_$(sha1sum <<<"${url}" | cut -d ' ' -f1)"
+    fi
+    mkdir -p "${tmpdir}"
+
+    headers=$(curl -s -I "${url}")
+
+    shopt -s nocasematch
+
+    ranges=
+    ranges_pattern='Accept-Ranges[[:space:]]*:[[:space:]]*(bytes)'
+    [[ ${headers} =~ ${ranges_pattern} ]] && ranges=${BASH_REMATCH[1]}
+
+    filesize=
+    length_pattern='Content-Length[[:space:]]*:[[:space:]]*([0-9]+)'
+    [[ ${headers} =~ ${length_pattern} ]] && filesize=${BASH_REMATCH[1]}
+
+    shopt -u nocasematch
+
+    do_download
+
+    rm -rf "${tmpdir}"
+done
