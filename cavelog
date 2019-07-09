@@ -2,7 +2,7 @@
 
 ROOT=${1}/
 
-rp='([0-9]+): (starting|finished) install of package ([^:]+)(:[^ ]+) \(([0-9]+ of [0-9]+).( ([0-9]+) failed\)|)'
+rp='([0-9]+): (starting|finished) install of package ([^:]+)(:[^ ]+) \(([0-9]+) of ([0-9]+).( ([0-9]+) failed\)|)'
 rt='[0-9]+: (starting|finished) install of targets (.*)'
 
 # colors
@@ -10,6 +10,7 @@ default='\e[0m'
 grey='\e[90m'
 red='\e[1;31m'
 
+states=()
 # read last 500 lines (overkill, but we potentially have to skip a lot of fetch lines)
 tail -F -n500 "${ROOT}"var/log/paludis.log \
     | egrep --line-buffered '(starting|finished) install' \
@@ -20,23 +21,28 @@ tail -F -n500 "${ROOT}"var/log/paludis.log \
             [[ -n ${failed} ]] && echo ""
             echo -e "${grey}${state} install of:${default} ${targets}"
             unset failed
+            states=()
         elif [[ ${line} =~ ${rp} ]]; then
             date=${BASH_REMATCH[1]}
             state=${BASH_REMATCH[2]}
             pkg=${BASH_REMATCH[3]}
             slotrepo=${BASH_REMATCH[4]}
-            outof=${BASH_REMATCH[5]}
-            lastfailed=${BASH_REMATCH[7]:-0}
+            curr=${BASH_REMATCH[5]}
+            outof=${BASH_REMATCH[6]}
+            lastfailed=${BASH_REMATCH[8]:-0}
+
+            states[${curr}]=${state}
             # if ${failed} is unset we are in the first iteration
             if [[ -n ${failed} ]]; then
-                if [[ ${failed} -ne ${lastfailed} ]]; then
+                if [[ ${failed} -ne ${lastfailed} && ${states[${prev}]} != 'finished' ]]; then
                     echo -e " ${red}failed!${default}"
                 else
                     echo ""
                 fi
             fi
+            echo -n -e "${grey}$(date --date=@${date} '+%F %T') ${state}${default} ${pkg}${grey}${slotrepo}${default} [${curr} of ${outof}]"
             failed=${lastfailed}
-            echo -n -e "${grey}$(date --date=@${date} '+%F %T') ${state}${default} ${pkg}${grey}${slotrepo}${default} [${outof}]"
+            prev=${curr}
         else
             echo "UNHANDLED LINE: ${line}"
         fi
